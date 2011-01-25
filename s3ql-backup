@@ -75,6 +75,7 @@ else
 fi
 
 for d; do
+	[ "$verbose" ] && echo "Doing $d..."
 	rsync -aHAxR --delete-during --delete-excluded --partial \
 		$rsyncopts "$d" "$backupdir"
 done
