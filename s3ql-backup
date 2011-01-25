@@ -1,36 +1,75 @@
 #!/bin/bash
 
-# Usage: $0 [options] base-dir s3://url [prefix]
+# Usage: $0 [options] s3://url paths...
+#
+# -p prefix		prefix before the date directory
+# -f			freeze backup on successful completion
+# -v			verbose rsync
+# --progress		rsync per-file progress
+# --exclude pattern	rsync exclude/include/filter info
+# --exclude-from file
+# --include pattern
+# --include-from file
+# --filter filter
 
 # Fail if anything does
 set -e
 
-basedir=$1
-s3url=$2
-prefix=$3
+prefix=""
+freeze=""
+rsyncopts=""
+verbose=""
+s3qlquiet="--quiet"
 
-fsck.s3ql "$s3url"
+args=$(getopt -o Fvp:f -l progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
+eval set -- "$args"
+
+while :; do
+	case "$1" in
+	-p)	prefix="$2"; shift ;;
+	-f)	freeze=y ;;
+	-v)	rsyncopts="$rsyncopts -v"; verbose=y; s3qlquiet="" ;;
+	-F | --progress)	rsyncopts="$rsyncopts $1" ;;
+	--exclude | --exclude-from | --include | --include-from | --filter)
+		rsyncopts="$rsyncopts $1 $2"
+		shift
+		;;
+	--)	shift; break ;;
+	esac
+	shift
+done
+
+if [ $# -lt 2 ]; then
+	echo "Need S3 URL and at least one path"
+	exit 1
+fi
+
+s3url="$1"; shift
+
+fsck.s3ql $s3qlquiet "$s3url"
 
 s3qlmnt=$(mktemp -d -t s3ql-backup-XXXXXXXXX)
 
-mount.s3ql --compress=zlib --compression-threads=1 "$s3url" "$s3qlmnt"
-
-s3qldir="$s3qlmnt/$prefix"
-[ -n "$prefix" ] && mkdir -p "$s3qldir"
+mount.s3ql $s3qlquiet --compress=zlib --compression-threads=1 "$s3url" "$s3qlmnt"
 
 trap "cd /; sleep 3; umount.s3ql $s3qlmnt; rmdir $s3qlmnt" EXIT
 
-datedir="$s3qldir/$(date -u +%Y-%m-%d)"
+s3qldir=$(readlink -m "$s3qlmnt/$prefix")
+
+[ -d "$s3qldir" ] || mkdir -p "$s3qldir"
+
+backupdir="$s3qldir/$(date -u +%Y-%m-%d)"
 mostrecent="$(ls -1r $s3qldir | egrep '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)"
 
-if [ -n "$mostrecent" -a "$s3qldir/$mostrecent" != "$datedir" ]; then
-	s3qlcp "$s3qldir/$mostrecent" "$datedir"
+if [ -n "$mostrecent" -a "$s3qldir/$mostrecent" != "$backupdir" ]; then
+	s3qlcp "$s3qldir/$mostrecent" "$backupdir"
+else
+	mkdir -p "$backupdir"
 fi
 
-[ ! -d "$datedir" ] && mkdir -p "$datedir"
+for d; do
+	rsync -aHAXxR --delete-during --delete-excluded --partial \
+		$rsyncopts --exclude '*~' "$d" "$backupdir"
+done
 
-rsync -aHAXxR --delete-during --delete-excluded --partial -v \
-	--exclude '*~' \
-		 "$basedir" "$datedir"
-
-#s3qllock "$datedir"
+[ "$freeze" ] && s3qllock "$backupdir"
