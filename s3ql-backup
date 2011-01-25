@@ -74,10 +74,20 @@ else
 	mkdir -p "$backupdir"
 fi
 
+set +e		# allow errors
+
 for d; do
 	[ "$verbose" ] && echo "Doing $d..."
 	rsync -aHAxR --delete-during --delete-excluded --partial \
 		$rsyncopts "$d" "$backupdir"
+	case "$?" in
+	0 | 24)		;;		# Success and vanished files OK
+	*)
+		# On error continue to next, but don't freeze
+		echo "Error $? on $d"
+		freeze=""
+		;;
+	esac
 done
 
 [ "$freeze" ] && s3qllock "$backupdir"
