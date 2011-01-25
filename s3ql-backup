@@ -11,6 +11,7 @@
 # --include pattern
 # --include-from file
 # --filter filter
+# -X --xattrs		rsync xattrs
 
 # Fail if anything does
 set -e
@@ -21,15 +22,21 @@ rsyncopts=""
 verbose=""
 s3qlquiet="--quiet"
 
-args=$(getopt -o Fvp:f -l progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
+args=$(getopt -o XFvp:f -l xattrs,progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
 eval set -- "$args"
 
 while :; do
 	case "$1" in
 	-p)	prefix="$2"; shift ;;
 	-f)	freeze=y ;;
-	-v)	rsyncopts="$rsyncopts -v"; verbose=y; s3qlquiet="" ;;
-	-F | --progress)	rsyncopts="$rsyncopts $1" ;;
+	-v)
+		rsyncopts="$rsyncopts -v"
+		verbose=y
+		s3qlquiet=""
+		;;
+	-F | --progress | -X | --xattrs)
+		rsyncopts="$rsyncopts $1"
+		;;
 	--exclude | --exclude-from | --include | --include-from | --filter)
 		rsyncopts="$rsyncopts $1 $2"
 		shift
@@ -68,7 +75,7 @@ else
 fi
 
 for d; do
-	rsync -aHAXxR --delete-during --delete-excluded --partial \
+	rsync -aHAxR --delete-during --delete-excluded --partial \
 		$rsyncopts --exclude '*~' "$d" "$backupdir"
 done
 
