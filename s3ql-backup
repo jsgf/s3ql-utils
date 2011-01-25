@@ -76,7 +76,7 @@ fi
 
 for d; do
 	rsync -aHAxR --delete-during --delete-excluded --partial \
-		$rsyncopts --exclude '*~' "$d" "$backupdir"
+		$rsyncopts "$d" "$backupdir"
 done
 
 [ "$freeze" ] && s3qllock "$backupdir"
