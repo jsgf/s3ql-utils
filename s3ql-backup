@@ -82,6 +82,10 @@ for d; do
 		$rsyncopts "$d" "$backupdir"
 	case "$?" in
 	0 | 24)		;;		# Success and vanished files OK
+	20)
+		# Exit on interrupt; don't freeze
+		exit 20
+		;;
 	*)
 		# On error continue to next, but don't freeze
 		echo "Error $? on $d" 1>&2
