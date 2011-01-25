@@ -13,7 +13,7 @@ fsck.s3ql "$s3url"
 
 s3qlmnt=$(mktemp -d -t s3ql-backup-XXXXXXXXX)
 
-mount.s3ql --compress=zlib --compression-threads=2 "$s3url" "$s3qlmnt"
+mount.s3ql --compress=zlib --compression-threads=1 "$s3url" "$s3qlmnt"
 
 s3qldir="$s3qlmnt/$prefix"
 [ -n "$prefix" ] && mkdir -p "$s3qldir"
