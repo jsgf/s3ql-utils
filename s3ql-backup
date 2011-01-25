@@ -47,7 +47,7 @@ while :; do
 done
 
 if [ $# -lt 2 ]; then
-	echo "Need S3 URL and at least one path"
+	echo "Need S3 URL and at least one path" 1>&2
 	exit 1
 fi
 
@@ -77,14 +77,14 @@ fi
 set +e		# allow errors
 
 for d; do
-	[ "$verbose" ] && echo "Doing $d..."
+	[ "$verbose" ] && echo "Doing $d..." 1>&2
 	rsync -aHAxR --delete-during --delete-excluded --partial \
 		$rsyncopts "$d" "$backupdir"
 	case "$?" in
 	0 | 24)		;;		# Success and vanished files OK
 	*)
 		# On error continue to next, but don't freeze
-		echo "Error $? on $d"
+		echo "Error $? on $d" 1>&2
 		freeze=""
 		;;
 	esac
