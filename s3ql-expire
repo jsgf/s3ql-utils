@@ -17,7 +17,7 @@ declare -i keep_weeks=8		# keep 1 backup/week for N weeks, then
 declare -i keep_months=12	# keep 1 backup/month for N months
 declare -i keep_years=20	# keep 1 backup/year for N years
 
-declare rmcmd="rm -rf"
+rmcmd="rm -rf"
 
 args=$(getopt -o y -l keep-days:,keep-weeks:,keep-months:,keep-years:,s3ql -- "$@")
 eval set -- "$args"
