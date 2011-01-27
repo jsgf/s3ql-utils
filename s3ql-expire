@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# Given a directory, search for date directories, and expire old ones
+# Backup directories are named YYYY-MM-DD
+#
+# s3ql-expire [-y] directory
+
+declare -i -r day=$(( 3600 * 24 ))
+declare -i -r week=$(( $day * 7 ))
+declare -i -r month=$(( $week * 4 ))
+declare -i -r year=$(( $day * 365 ))
+
+doit=""
+
+declare -i keep_days=7		# keep 1 backup/day for N days, then
+declare -i keep_weeks=8		# keep 1 backup/week for N weeks, then
+declare -i keep_months=12	# keep 1 backup/month for N months
+declare -i keep_years=20	# keep 1 backup/year for N years
+
+declare rmcmd="rm -rf"
+
+args=$(getopt -o y -l keep-days:,keep-weeks:,keep-months:,keep-years:,s3ql -- "$@")
+eval set -- "$args"
+
+while :; do
+      case "$1" in
+	  -y)	doit=y ;;
+
+	  --keep-days)		keep_days=$2; shift ;;
+	  --keep-weeks)		keep_weeks=$2; shift ;;
+	  --keep-months)	keep_months=$2; shift ;;
+	  --keep-years)		keep_years=$2; shift ;;
+
+	  --s3ql)		rmcmd="s3qlrm" ;;
+
+	  --)			shift; break ;;
+      esac
+      shift
+done
+
+if [ $# -lt 1 ]; then
+    echo "Need directory to work on" 1>&2
+    exit 1
+fi
+
+dir=$(readlink -f "$1")
+
+if [ ! -d "$dir" ]; then
+    echo "Directory $dir doesn't exist" 1>&2
+    exit 1
+fi
+
+backups=$(cd $dir && ls -1df [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] | sort -n)
+
+declare -A datemap
+
+for b in $backups; do
+    datemap[$b]=$(date +%s -d $b)
+done
+
+declare -i -r latest=${datemap[$(echo "$backups" | tail -1)]}
+
+function backup_in_range ()
+{
+    local backups="$1"
+    local -i start=$2
+    local -i end=$3
+    local b
+
+    for b in $backups; do
+	local -i raw=${datemap[$b]}
+	[ $raw -gt $start -a $raw -le $end ] && echo $b
+    done
+}
+
+function cull_list () {
+    local -i count=$2
+    local -i range=$1
+    local -i i=0
+
+    while [ $i -lt $count ]; do
+	let i++
+	local cull=$(backup_in_range "$backups" $(($pointer - $range)) $pointer)
+
+	backups="$(comm -3 <(echo "$backups") <(echo "$cull"))"
+	let 'pointer = pointer - range'
+
+	death_list="$death_list $(echo "$cull" | tail -n +2)"
+    done
+}
+
+declare -i pointer=$latest
+declare death_list=""
+cull_list $day $keep_days
+cull_list $week $keep_weeks
+cull_list $month $keep_months
+cull_list $year $keep_years
+
+death_list=$(echo $death_list)		# canonicalize list
+
+if [ -z "$death_list" ]; then
+    echo "Nothing to do" >&2
+elif [ "$doit" ];  then
+    (cd $dir; echo $death_list | xargs $rmcmd )
+else
+    echo cd $dir\; $rmcmd $death_list
+fi
