@@ -51,7 +51,9 @@ while :; do
 done
 
 function echov () {
+	local ret=$?
 	[ "$verbose" ] && echo "$@"
+	return $ret
 }
 
 if [ $# -lt 2 ]; then

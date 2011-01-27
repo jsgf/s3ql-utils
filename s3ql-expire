@@ -19,7 +19,9 @@ declare -i keep_months=12	# keep 1 backup/month for N months
 declare -i keep_years=20	# keep 1 backup/year for N years
 
 function echov () {
+	local ret=$?
 	[ "$verbose" ] && echo "$@"
+	return $ret
 }
 
 rmcmd="rm -rf"
