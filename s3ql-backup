@@ -17,12 +17,14 @@
 set -e
 
 prefix=""
+expire=""
+expire_opts=""
 freeze=""
 rsyncopts=""
 verbose=""
 s3qlquiet="--quiet"
 
-args=$(getopt -o XFvp:f -l xattrs,progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
+args=$(getopt -o XFvp:f -l expire,expire-opts:,xattrs,progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
 eval set -- "$args"
 
 while :; do
@@ -41,6 +43,8 @@ while :; do
 		rsyncopts="$rsyncopts $1 $2"
 		shift
 		;;
+	--expire)	expire=y ;;
+	--expire-opts)	expire_opts="$2"; shift ;;
 	--)	shift; break ;;
 	esac
 	shift
@@ -95,3 +99,5 @@ for d; do
 done
 
 [ "$freeze" ] && s3qllock "$backupdir"
+
+[ "$expire" ] && s3ql-expire $expire_ops "$s3qldir"
