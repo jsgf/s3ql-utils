@@ -50,6 +50,10 @@ while :; do
 	shift
 done
 
+function echov () {
+	[ "$verbose" ] && echo "$@"
+}
+
 if [ $# -lt 2 ]; then
 	echo "Need S3 URL and at least one path" 1>&2
 	exit 1
@@ -63,7 +67,7 @@ s3qlmnt=$(mktemp -d -t s3ql-backup-XXXXXXXXX)
 
 mount.s3ql $s3qlquiet --compress=zlib --compression-threads=1 "$s3url" "$s3qlmnt"
 
-trap "cd /; sleep 3; umount.s3ql $s3qlmnt; rmdir $s3qlmnt" EXIT
+trap "cd /; sleep 3; echov \"Unmounting $s3qlmnt\"; umount.s3ql $s3qlmnt; rmdir $s3qlmnt" EXIT
 
 s3qldir=$(readlink -m "$s3qlmnt/$prefix")
 
@@ -81,7 +85,7 @@ fi
 set +e		# allow errors
 
 for d; do
-	[ "$verbose" ] && echo "Doing $d..." 1>&2
+	echov "Doing $d..." 1>&2
 	rsync -aHAxR --delete-during --delete-excluded --partial \
 		$rsyncopts "$d" "$backupdir"
 	case "$?" in
@@ -98,6 +102,12 @@ for d; do
 	esac
 done
 
-[ "$freeze" ] && s3qllock "$backupdir"
+if [ "$freeze" ]; then
+	echov "Locking $backupdir"
+	s3qllock "$backupdir"
+fi
 
-[ "$expire" ] && s3ql-expire $expire_ops "$s3qldir"
+if [ "$expire" ]; then
+	echov "Expiring $s3qldir"
+	s3ql-expire --s3ql -y $expire_ops "$s3qldir"
+fi
