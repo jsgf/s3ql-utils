@@ -11,20 +11,26 @@ declare -i -r month=$(( $week * 4 ))
 declare -i -r year=$(( $day * 365 ))
 
 doit=""
+verbose=""
 
 declare -i keep_days=7		# keep 1 backup/day for N days, then
 declare -i keep_weeks=8		# keep 1 backup/week for N weeks, then
 declare -i keep_months=12	# keep 1 backup/month for N months
 declare -i keep_years=20	# keep 1 backup/year for N years
 
+function echov () {
+	[ "$verbose" ] && echo "$@"
+}
+
 rmcmd="rm -rf"
 
-args=$(getopt -o y -l keep-days:,keep-weeks:,keep-months:,keep-years:,s3ql -- "$@")
+args=$(getopt -o yv -l keep-days:,keep-weeks:,keep-months:,keep-years:,s3ql -- "$@")
 eval set -- "$args"
 
 while :; do
       case "$1" in
 	  -y)	doit=y ;;
+	  -v)	verbose=y ;;
 
 	  --keep-days)		keep_days=$2; shift ;;
 	  --keep-weeks)		keep_weeks=$2; shift ;;
@@ -99,7 +105,7 @@ cull_list $year $keep_years
 death_list=$(echo $death_list)		# canonicalize list
 
 if [ -z "$death_list" ]; then
-    echo "Nothing to do" >&2
+    echov "Nothing to do" >&2
 elif [ "$doit" ];  then
     (cd $dir; echo $death_list | xargs $rmcmd )
 else
