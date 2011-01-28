@@ -19,9 +19,9 @@ declare -i keep_months=12	# keep 1 backup/month for N months
 declare -i keep_years=20	# keep 1 backup/year for N years
 
 function echov () {
-	local ret=$?
-	[ "$verbose" ] && echo "$@"
-	return $ret
+    local ret=$?
+    [ "$verbose" ] && echo "$@"
+    return $ret
 }
 
 rmcmd="rm -rf"
@@ -30,20 +30,20 @@ args=$(getopt -o yv -l keep-days:,keep-weeks:,keep-months:,keep-years:,s3ql -- "
 eval set -- "$args"
 
 while :; do
-      case "$1" in
-	  -y)	doit=y ;;
-	  -v)	verbose=y ;;
+    case "$1" in
+	-y)	doit=y ;;
+	-v)	verbose=y ;;
 
-	  --keep-days)		keep_days=$2; shift ;;
-	  --keep-weeks)		keep_weeks=$2; shift ;;
-	  --keep-months)	keep_months=$2; shift ;;
-	  --keep-years)		keep_years=$2; shift ;;
+	--keep-days)		keep_days=$2; shift ;;
+	--keep-weeks)		keep_weeks=$2; shift ;;
+	--keep-months)	keep_months=$2; shift ;;
+	--keep-years)		keep_years=$2; shift ;;
 
-	  --s3ql)		rmcmd="s3qlrm" ;;
+	--s3ql)		rmcmd="s3qlrm" ;;
 
-	  --)			shift; break ;;
-      esac
-      shift
+	--)			shift; break ;;
+    esac
+    shift
 done
 
 if [ $# -lt 1 ]; then

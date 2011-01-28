@@ -29,38 +29,47 @@ args=$(getopt -o XFvp:f -l stats,expire,expire-opts:,xattrs,progress,filter:,exc
 eval set -- "$args"
 
 while :; do
-	case "$1" in
+    case "$1" in
 	-p)	prefix="$2"; shift ;;
 	-f)	freeze=y ;;
 	-v)
-		rsyncopts="$rsyncopts -v"
-		verbose=y
-		s3qlquiet=""
-		;;
-	--stats) stats=y ;;
+	    rsyncopts="$rsyncopts -v"
+	    verbose=y
+	    s3qlquiet=""
+	    ;;
+
+	--stats)
+	    stats=y
+	    ;;
 	-F | --progress | -X | --xattrs)
-		rsyncopts="$rsyncopts $1"
-		;;
+	    rsyncopts="$rsyncopts $1"
+	    ;;
 	--exclude | --exclude-from | --include | --include-from | --filter)
-		rsyncopts="$rsyncopts $1 $2"
-		shift
-		;;
-	--expire)	expire=y ;;
-	--expire-opts)	expire_opts="$2"; shift ;;
-	--)	shift; break ;;
-	esac
-	shift
+	    rsyncopts="$rsyncopts $1 $2"
+	    shift
+	    ;;
+	--expire)
+	    expire=y
+	    ;;
+	--expire-opts)
+	    expire_opts="$2"; shift
+	    ;;
+
+	--)
+	    shift; break ;;
+    esac
+    shift
 done
 
 function echov () {
-	local ret=$?
-	[ "$verbose" ] && echo "$@"
-	return $ret
+    local ret=$?
+    [ "$verbose" ] && echo "$@"
+    return $ret
 }
 
 if [ $# -lt 2 ]; then
-	echo "Need S3 URL and at least one path" 1>&2
-	exit 1
+    echo "Need S3 URL and at least one path" 1>&2
+    exit 1
 fi
 
 s3url="$1"; shift
@@ -81,41 +90,41 @@ backupdir="$s3qldir/$(date -u +%Y-%m-%d)"
 mostrecent="$(ls -1r $s3qldir | egrep '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)"
 
 if [ -n "$mostrecent" -a "$s3qldir/$mostrecent" != "$backupdir" ]; then
-	s3qlcp "$s3qldir/$mostrecent" "$backupdir"
+    s3qlcp "$s3qldir/$mostrecent" "$backupdir"
 else
-	mkdir -p "$backupdir"
+    mkdir -p "$backupdir"
 fi
 
 set +e		# allow errors
 
 for d; do
-	echov "Doing $d..." 1>&2
-	rsync -aHAxR --delete-during --delete-excluded --partial \
-		$rsyncopts "$d" "$backupdir"
-	case "$?" in
+    echov "Doing $d..." 1>&2
+    rsync -aHAxR --delete-during --delete-excluded --partial \
+	$rsyncopts "$d" "$backupdir"
+    case "$?" in
 	0 | 24)		;;		# Success and vanished files OK
 	20)
 		# Exit on interrupt; don't freeze
-		exit 20
-		;;
+	    exit 20
+	    ;;
 	*)
 		# On error continue to next, but don't freeze
-		echo "Error $? on $d" 1>&2
-		freeze=""
-		;;
-	esac
+	    echo "Error $? on $d" 1>&2
+	    freeze=""
+	    ;;
+    esac
 done
 
 if [ "$freeze" ]; then
-	echov "Locking $backupdir"
-	s3qllock "$backupdir"
+    echov "Locking $backupdir"
+    s3qllock "$backupdir"
 fi
 
 if [ "$expire" ]; then
-	echov "Expiring $s3qldir"
-	s3ql-expire --s3ql -y $expire_ops "$s3qldir"
+    echov "Expiring $s3qldir"
+    s3ql-expire --s3ql -y $expire_ops "$s3qldir"
 fi
 
 if [ "$stats" ]; then
-	s3qlstat "$s3qlmnt"
+    s3qlstat "$s3qlmnt"
 fi
