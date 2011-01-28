@@ -23,8 +23,9 @@ freeze=""
 rsyncopts=""
 verbose=""
 s3qlquiet="--quiet"
+stats=""
 
-args=$(getopt -o XFvp:f -l expire,expire-opts:,xattrs,progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
+args=$(getopt -o XFvp:f -l stats,expire,expire-opts:,xattrs,progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
 eval set -- "$args"
 
 while :; do
@@ -36,6 +37,7 @@ while :; do
 		verbose=y
 		s3qlquiet=""
 		;;
+	--stats) stats=y ;;
 	-F | --progress | -X | --xattrs)
 		rsyncopts="$rsyncopts $1"
 		;;
@@ -112,4 +114,8 @@ fi
 if [ "$expire" ]; then
 	echov "Expiring $s3qldir"
 	s3ql-expire --s3ql -y $expire_ops "$s3qldir"
+fi
+
+if [ "$stats" ]; then
+	s3qlstat "$s3qlmnt"
 fi
