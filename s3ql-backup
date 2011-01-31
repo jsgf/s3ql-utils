@@ -80,7 +80,7 @@ s3qlmnt=$(mktemp -d -t s3ql-backup-XXXXXXXXX)
 
 mount.s3ql $s3qlquiet --compress=zlib --compression-threads=1 "$s3url" "$s3qlmnt"
 
-trap "cd /; sleep 3; echov \"Unmounting $s3qlmnt\"; umount.s3ql $s3qlmnt; rmdir $s3qlmnt" EXIT
+trap "cd /; sleep 3; echov \"Unmounting $s3qlmnt\"; umount.s3ql $s3qlmnt && rmdir $s3qlmnt" EXIT
 
 s3qldir=$(readlink -m "$s3qlmnt/$prefix")
 
