@@ -20,10 +20,11 @@ prefix=""
 expire=""
 expire_opts=""
 freeze=""
-rsyncopts=""
 verbose=""
 s3qlquiet="--quiet"
 stats=""
+
+declare -a rsyncopts
 
 args=$(getopt -o XFvp:f -l stats,expire,expire-opts:,xattrs,progress,filter:,exclude:,exclude-from:,include:,include-from: -- "$@")
 eval set -- "$args"
@@ -33,7 +34,7 @@ while :; do
 	-p)	prefix="$2"; shift ;;
 	-f)	freeze=y ;;
 	-v)
-	    rsyncopts="$rsyncopts -v"
+	    rsyncopts[${#rsyncopts[*]}]="-v"
 	    verbose=y
 	    s3qlquiet=""
 	    ;;
@@ -42,10 +43,11 @@ while :; do
 	    stats=y
 	    ;;
 	-F | --progress | -X | --xattrs)
-	    rsyncopts="$rsyncopts $1"
+	    rsyncopts[${#rsyncopts[*]}]="$1"
 	    ;;
 	--exclude | --exclude-from | --include | --include-from | --filter)
-	    rsyncopts="$rsyncopts $1 $2"
+	    rsyncopts[${#rsyncopts[*]}]="$1"
+	    rsyncopts[${#rsyncopts[*]}]="$2"
 	    shift
 	    ;;
 	--expire)
@@ -100,7 +102,7 @@ set +e		# allow errors
 for d; do
     echov "Doing $d..." 1>&2
     rsync -aHAxR --delete-during --delete-excluded --partial \
-	$rsyncopts "$d" "$backupdir"
+	"${rsyncopts[@]}" "$d" "$backupdir"
     case "$?" in
 	0 | 24)		;;		# Success and vanished files OK
 	20)
