@@ -104,13 +104,14 @@ for d; do
     case "$?" in
 	0 | 24)		;;		# Success and vanished files OK
 	20)
-		# Exit on interrupt; don't freeze
+		# Exit on interrupt; don't freeze or expire
 	    exit 20
 	    ;;
 	*)
-		# On error continue to next, but don't freeze
+		# On error continue to next, but don't freeze or expire
 	    echo "Error $? on $d" 1>&2
 	    freeze=""
+	    expire=""
 	    ;;
     esac
 done
