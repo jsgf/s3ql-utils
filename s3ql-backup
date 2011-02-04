@@ -92,6 +92,7 @@ backupdir="$s3qldir/$(date -u +%Y-%m-%d)"
 mostrecent="$(ls -1r $s3qldir | egrep '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)"
 
 if [ -n "$mostrecent" -a "$s3qldir/$mostrecent" != "$backupdir" ]; then
+    echov "Copying from $mostrecent to $backupdir"
     s3qlcp "$s3qldir/$mostrecent" "$backupdir"
 else
     mkdir -p "$backupdir"
