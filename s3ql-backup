@@ -126,7 +126,7 @@ fi
 
 if [ "$expire" ]; then
     echov "Expiring $s3qldir"
-    s3ql-expire --s3ql -y $expire_ops "$s3qldir"
+    s3ql-expire --s3ql -y $expire_opts "$s3qldir"
     (cd "$s3qldir"; echov "Backups: " *)
 fi
 
